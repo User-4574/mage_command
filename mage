@@ -1,0 +1,784 @@
+#!/bin/bash
+#I wrote this in bash because I wanted to get better with it; I have achieved that goal.
+echo "The other mage command, version 1.1"
+function addslash(){
+        string=$1
+        length=${#string}
+        ((length--))
+        if [ "${string:$length:1}" == "/" ];then
+                echo ${string}
+        else
+                echo ${string}"/"
+        fi
+}
+shopt -s nocasematch
+for i in $@;do
+        if [[ $i =~ '-SSHHOST' ]];then export SSHHOST=$(echo $i|sed 's/-SSHHOST=//I');
+ 	elif [[ $i =~ '-BACKUPSITE' ]];then export BACKUPSITE=$(echo $i|sed 's/-BACKUPSITE=//I');
+        elif [[ $i =~ '-BACKUPDB' ]];then export BACKUPDB=$(echo $i|sed 's/-BACKUPDB=//I');
+        elif [[ $i =~ '-SSHUSER' ]];then export SSHUSER=$(echo $i|sed 's/-SSHUSER=//I');
+        elif [[ $i =~ '-SSHPASS' ]];then export SSHPASS=$(echo $i|sed 's/-SSHPASS=//I');
+	elif [[ $i =~ '-SKIPFILES' ]];then export SKIPCOPY="1";
+        elif [[ $i =~ '-VHOME' ]];then export VHOME=$(echo $i|sed 's/-VHOME=//I');
+        elif [[ $i =~ '-SSHPORT' ]];then export SSHPORT=$(echo $i|sed 's/-SSHPORT=//I');
+	elif [[ $i =~ '-TESTDB' ]];then export TESTDB=$(echo $i|sed 's/-TESTDB=//I');
+	elif [[ $i =~ '-MYBASEURL' ]];then export MYBASEURL=$(echo $i|sed 's/-MYBASEURL=//I');MYBASEURL=$(addslash ${MYBASEURL});
+	elif [[ $i =~ '-NEWBASEURL' ]];then export NEWBASEURL="1";NEWBASEURL=$(addslash ${NEWBASEURL});
+	elif [[ $i =~ '-CHECKREDIS' ]];then export CHECKREDIS="1";
+	elif [[ $i =~ '-PRINTBASEURL' ]];then export PRINTBASEURL="1";
+        elif [[ $i =~ '-MIGRATEMAGENTO' ]];then export MIGRATEMAGENTO="1";
+	elif [[ $i =~ '-SCP' ]];then export SCP="1";
+        elif [[ $i =~ '-TEMPADMIN' ]];then export TEMPADMIN="1";
+        elif [[ $i =~ '-TEMPADMIN2' ]];then export TEMPADMIN2="1";
+	elif [[ $i =~ '-WORKINGDIR' ]];then export WORKINGDIR=$(echo $i|sed 's/-WORKINGDIR=//I');
+	elif [[ $i =~ '-SHOWDB' ]];then export SHOWDB="1";
+	elif [[ $i =~ '-SHOWMAGENTOS' ]];then export SHOWMAGENTOS="1";
+	elif [[ $i =~ '-SHOWM' ]];then export SHOWMAGENTOS="1";
+	elif [[ $i =~ '-CLEARDB' ]];then export CLEARDB=$(echo $i|sed 's/-CLEARDB=//I');
+	elif [[ $i =~ '-INSTALLMAGENTO' ]];then export INSTALLMAGENTO="1";
+        elif [[ $i =~ '-TBPREFIX' ]];then export TBPREFIX=$(echo $i|sed 's/-TBPREFIX=//I');
+	elif [[ $i =~ '-DBNAME' ]];then export DBNAME=$(echo $i|sed 's/-DBNAME=//I');
+	elif [[ $i =~ '-DBUSER' ]];then export DBUSER=$(echo $i|sed 's/-DBUSER=//I');
+	elif [[ $i =~ '-DBPASS' ]];then export DBPASS=$(echo $i|sed 's/-DBPASS=//I');
+	elif [[ $i =~ '-VERSION' ]];then export VERSION=$(echo $i|sed 's/-VERSION=//I');
+	elif [[ $i =~ '-ADMINURL' ]];then export ADMINURL=$(echo $i|sed 's/-ADMINURL=//I');
+	elif [[ $i =~ '-SAMPLEDATA' ]];then export SAMPLEDATA="1";
+	elif [[ $i =~ '-FIRSTNAME' ]];then export FIRSTNAME=$(echo $i|sed 's/-FIRSTNAME=//I');
+	elif [[ $i =~ '-LASTNAME' ]];then export LASTNAME=$(echo $i|sed 's/-LASTNAME=//I');
+	elif [[ $i =~ '-EMAIL' ]];then export EMAIL=$(echo $i|sed 's/-EMAIL=//I');
+	elif [[ $i =~ '-DBSPLIT' ]];then export DBSPLIT=$(echo $i|sed 's/-DBSPLIT=//I');
+        elif [[ $i =~ '-TBSPLIT' ]];then export TBSPLIT=$(echo $i|sed 's/-TBSPLIT=//I');
+        elif [[ $i =~ '-DBFILE' ]];then export DBFILE=$(echo $i|sed 's/-DBFILE=//I');
+	elif [[ $i =~ '-PATCH' ]];then export PATCH="1";
+        elif [[ $i =~ '-WPVER' ]];then export WPVER="1";
+	elif [[ $i =~ '-LICENSE' ]];then export LICENSE="1";
+        elif [[ $i =~ '-CSR' ]];then export CSR="1";
+        elif [[ $i =~ '-BADFILE' ]];then export BADFILE=$(echo $i|sed 's/-BADFILE=//I');
+	elif [[ $i =~ '-GOODFILE' ]];then export GOODFILE=$(echo $i|sed 's/-GOODFILE=//I');
+	elif [[ $i =~ '-ACCESSREPORT' ]];then export ACCESSREPORT=$(echo $i|sed 's/-ACCESSREPORT=//I');
+	elif [[ $i =~ '-MAGVERSION' ]];then export MAGVERSION="1";
+	elif [[ $i =~ '-MALWARE' ]];then export BADFILE=$(echo $i|sed 's/-MALWARE=//I');
+        elif [[ $i =~ '-SWAPFILE' ]];then export SWAPFILE=$(echo $i|sed 's/-SWAPFILE=//I');
+
+	elif [[ $i =~ '-MAKEMAGENTOREPO' ]]; then export MAKEMAGENTOREPO="1";
+	fi
+done
+#This is how come case doesn't have to match above.
+shopt -u nocasematch
+echo $BACKUPSITE
+MAGERUN='/usr/bin/n98-magerun'
+MAGERUN2='/opt/remi/php70/root/usr/bin/php -c /etc/opt/remi/php70/php.ini /opt/magemojo/bin/n98-magerun2.phar'
+
+if [[ ! -n ${TBPREFIX+1} ]];then 
+	TBPREFIX=''
+fi
+
+
+#Append / to things that need it
+
+length=${#MYBASEURL}
+((length--))
+[ "${MYBASEURL:$length:1}" != "/" ] && MYASEURL+="/"
+
+
+if [[ ! -n ${WORKINGDIR+1} ]];then
+	WORKINGDIR=$(pwd)
+fi
+#Append / to the end of WORKINGDIR if missing
+length=${#WORKINGDIR}
+((length--))
+[ "${WORKINGDIR:$length:1}" != "/" ] && WORKINGDIR+="/"
+
+
+
+
+function set_user_dir(){
+	DIROWNER="$(echo $(echo ${WORKINGDIR}|sed 's/\// /g')|awk '{print $2}')"
+        DIRGROUP='web-data'
+	echo "Working directory is:"$WORKINGDIR
+}
+set_user_dir
+
+
+
+
+function install_magento(){
+	if [[ -n ${DBNAME+1} && -n ${DBUSER+1} && -n ${DBPASS+1} && -n ${VERSION+1} && -n ${MYBASEURL} && -n ${FIRSTNAME+1} && -n ${LASTNAME+1} && -n ${EMAIL+1} ]];then
+		echo -e "WARNING! All files will be removed at the following path:${WORKINGDIR}\nMagento ${VERSION} will be install in its place"
+		df -h
+		temp_admin_halt
+		set_admin_info
+		ver_array=( $(echo $VERSION |sed 's/\./ /g') )
+		if [[ ${ver_array[0]} == "1" ]];then
+			rm -rf *
+			rm -rf .* >/dev/null 2>&1
+			su $DIROWNER -c "git clone https://github.com/OpenMage/magento-mirror/ ${WORKINGDIR}"
+			if [[ -n ${ver_array[1]+1} ]];then
+				if [[ ${ver_array[1]} =~ ^[0-9]+$ ]];then
+					su $DIROWNER -c "git checkout $VERSION"
+				fi
+			fi
+			if [[ -n ${SAMPLEDATA+1} ]];then
+				su $DIROWNER -c "wget http://magemojo.justanotherdomain.us/magento-sample-1.9.x.tar.gz;tar zxvf magento-sample-1.9.x.tar.gz"
+				su $DIROWNER -c "cp -R magento-sample-data-1.9.1.0/media ."
+				su $DIROWNER -c "cp -R magento-sample-data-1.9.1.0/skin ."
+				mysql -uroot ${DBNAME} <magento-sample-data-1.9.1.0/magento_sample_data_for_1.9.1.0.sql
+				rm -rf magento-sample-data-1.9.1.0
+				rm -f magento-sample-1.9.x.tar.gz
+			fi
+			su $DIROWNER -c "php -ddisplay_startup_errors=1 -ddisplay_errors=1 -derror_reporting=-1 -f './install.php' -- --db_name \"${DBNAME}\" --db_user \"${DBUSER}\" --db_pass \"${DBPASS}\" --url \"${MYBASEURL}\" --admin_firstname \"${FIRSTNAME}\" --admin_lastname \"${LASTNAME}\" --admin_email \"${EMAIL}\"  --admin_frontname \"${ADMIN_URL}\" --backend_frontname \"${ADMIN_URL}\" --admin_username \"${ADMIN_USER}\" --admin_password \"${ADMIN_PASS}\" --use_rewrites 'no' --secure_base_url '' --use_secure_admin 'no' --use_secure 'no' --session_save 'files' --default_currency 'USD' --skip_url_validation 'yes' --license_agreement_accepted 'yes' --locale 'en_US' --timezone 'EST5EDT' --db_host 'localhost' --db_prefix \"${TBPREFIX}\""
+			rm -rf .git
+			rm -f .gitignore
+#			su $DIROWNER -c "echo -e \"$(su $DIROWNER -c 'crontab -l')\n#Added by installer\n\n* * * * * /bin/sh `pwd`/cron.sh\n0 4 * * 0 /usr/bin/php `pwd`/shell/indexer.php --reindexall\"|crontab -"
+			echo "The following crontab entries will need to be made in MHM:"
+			echo -e "* * * * * /bin/sh `pwd`/cron.sh\n0 4 * * 0 /usr/bin/php `pwd`/shell/indexer.php --reindexall\n"
+
+		elif [[ ${ver_array[0]} == "2" ]];then				
+			if [ ! -d "/root/.composer" ];then
+				mkdir /root/.composer
+			fi
+			if [ -f "/root/.composer/auth.json" ];then
+				mv /root/.composer/auth.json /root/.composer/auth.json_backup
+			fi
+			echo '{"http-basic":{"repo.magento.com":{"username":"26576ed1002cde1dd2c899d1af70ffab","password":"52a33e2672f792dd65458ccbae5552de"}}}'>/root/.composer/auth.json
+			rm -rf *
+			rm -rf .* >/dev/null 2>&1
+			if [[ -n ${ver_array[1]+1} ]];then
+                                if [[ ${ver_array[1]} =~ ^[0-9]+$ ]];then
+						echo ""
+					/usr/bin/php70 /opt/magemojo/bin/composer.phar create-project --repository-url=https://repo.magento.com/ magento/project-community-edition --no-dev . $VERSION
+                                else
+					/usr/bin/php70 /opt/magemojo/bin/composer.phar create-project --repository-url=https://repo.magento.com/ magento/project-community-edition --no-dev .
+				fi
+                        fi
+			if [[ -n ${SAMPLEDATA+1} ]];then
+				/usr/bin/php70 bin/magento sampledata:deploy
+			fi	
+			chown -R $DIROWNER:web-data *
+			chown -R $DIROWNER:web-data .*
+			su $DIROWNER -c "/usr/bin/php70 bin/magento setup:install --db-name=\"${DBNAME}\" --db-user=\"${DBUSER}\" --db-password=\"${DBPASS}\" --base-url=\"${MYBASEURL}\" --backend-frontname=\"${ADMIN_URL}\" --admin-user=\"${ADMIN_USER}\" --admin-password=\"${ADMIN_PASS}\" --admin-email=\"${EMAIL}\" --admin-firstname=\"${FIRSTNAME}\" --admin-lastname=\"${LASTNAME}\" --use-rewrites='0' --use-secure='0' --base-url-secure='' --use-secure-admin='0' --language='en_US' --db-host='localhost' --cleanup-database --timezone='America/New_York' --currency='USD' --session-save='files' --db-prefix \"${DBPREFIX}\""
+			echo "The following crontab entries will need to be added to MHM:"
+			echo -e "* * * * * /usr/bin/php70 -c /etc/opt/remi/php70/php.ini `pwd`/bin/magento cron:run\n"
+			echo -e "* * * * * /usr/bin/php70 -c /etc/opt/remi/php70/php.ini `pwd`/bin/magento setup:cron:run\n"
+			echo -e "* * * * * /usr/bin/php70 -c /etc/opt/remi/php70/php.ini `pwd`/update/cron.php\n"
+			echo -e "0 4 * * 0 /usr/bin/php70 -c /etc/opt/remi/php70/php.ini `pwd`/bin/magento indexer:reindex\n"
+
+			if [ -f "/root/.composer/auth.json_backup" ];then
+				rm -f /root/.composer/auth.json
+				mv /root/.composer/auth.json_backup /root/.composer/auth.json
+			else
+				rm -f /root/.composer/auth.json
+			fi
+			
+
+		fi
+		echo -e "Magento has been installed with the following settings:\nVersion:${VERSION}\nDirectory:${WORKINGDIR}\nBaseURL:${MYBASEURL}\nAdminURL:${MYBASEURL}${ADMIN_URL}\nAdmin User:${ADMIN_USER}\nAdmin Pass:${ADMIN_PASS}\n\""
+
+	else
+		echo "Usage: -INSTALLMAGENTO -MYBASEURL='http://site.com' -DBNAME='dbname' -DBUSER='dbuser' -DBPASS='dbpass' -FIRSTNAME='john' -LASTNAME='doe' -EMAIL='john.doe@site.com' -version=1.9.2.4 (optional) -tbprefix=blah"
+		exit
+	fi
+
+}
+	
+
+
+function Install_redis(){
+        echo "Please enter the databse ID"
+        read DB_ID
+        TEMPVAR=''
+        if [ -e 'app/etc/local.xml' ];then
+                export REDIS_LINE="\n<cache>\n <backend>Cm_Cache_Backend_Redis</backend>\n  <backend_options>\n    <server>127.0.0.1</server>\n    <port>6379</port>\n    <persistent></persistent>\n     <database>"$DB_ID"</database>\n\
+            <password></password>\n    <force_standalone>0</force_standalone>\n    <connect_retries>1</connect_retries>\n    <read_timeout>10</read_timeout>\n\
+            <automatic_cleaning_factor>0</automatic_cleaning_factor>\n    <compress_data>1</compress_data>\n    <compress_tags>1</compress_tags>\n    <compress_threshold>20480</compress_threshold>\n\
+            <compression_lib>gzip</compression_lib>\n    <use_lua>0</use_lua>\n  </backend_options>\n</cache>\n"
+                while read -u 10 LINE; do
+                        if [[ $LINE =~ 'session_save' ]];then
+                                TEMPVAR+=$LINE"\n"
+                                TEMPVAR+=$REDIS_LINE"\n"
+               		         else
+                                TEMPVAR+=$LINE"\n"
+                        fi
+                done 10<app/etc/local.xml
+                echo -e $TEMPVAR > app/etc/local.xml
+		eval '$MAGERUN cache:dir:flush'
+                read -n1 -r -p "Redis has been setup in local.xml and var/cache cleared, browse the sight and press to display var/cache" key
+                ls -al var/cache/
+        elif [ -e 'app/etc/env.php' ];then
+                export REDIS_LINE="\n'cache' =>\narray (\n  'frontend' =>\n  array (\n    'default' =>\n    array (\n      'backend' => 'Cm_Cache_Backend_Redis',\n      'backend_options' =>\n      array (\n\
+                'server' => '127.0.0.1',\n        'port' => '6379',\n        'persistent' => '',\n        'database' => '"$DB_ID"',\n        'force_standalone' => '0',\n        'connect_retries' => '1',\n\
+                'read_timeout' => '10',\n        'automatic_cleaning_factor' => '0',\n        'compress_data' => '1',\n        'compress_tags' => '1',\n        'compress_threshold' => '20480',\n        'compression_lib' => 'gzip',\n\
+              ),\n    ),\n    'page_cache' =>\n    array (\n      'backend' => 'Cm_Cache_Backend_Redis',\n      'backend_options' =>\n      array (\n        'server' => '127.0.0.1',\n        'port' => '6379',\n\
+                'persistent' => '',\n        'database' => '"$DB_ID"',\n        'force_standalone' => '0',\n        'connect_retries' => '1',\n        'read_timeout' => '10',\n        'automatic_cleaning_factor' => '0',\n\
+                'compress_data' => '0',\n        'compress_tags' => '1',\n        'compress_threshold' => '20480',\n        'compression_lib' => 'gzip',\n      ),\n    ),\n  ),\n),"
+                while read -u 10 LINE; do
+                        if [[ $LINE =~ 'MAGE_MODE' ]];then
+                                TEMPVAR+=$LINE"\n"
+                                TEMPVAR+=$REDIS_LINE"\n"
+                        else
+                                TEMPVAR+=$LINE"\n"
+                        fi
+                done 10<app/etc/env.php
+                echo -e ${TEMPVAR} > app/etc/env.php
+#               rm -rf var/page_cache/*
+		eval '$MAGERUN cache:dir:flush'		
+                read -n1 -r -p "Redis has been setup in env.php and var/page_cache cleared, browse the sight and press to display var/page_cache" key
+                ls -al var/page_cache/
+        fi
+}
+function get_dbinfo(){
+#Having to rely on another language for decent xml parsing and grabbing something from the db I've never preferred bash.
+        if [ -e $WORKINGDIR'app/etc/local.xml' ];then
+		export MAGENTO_VER="1"
+		export TEMPVAR1=$(/usr/bin/php70 -r '$localxml=new SimpleXMLElement(file_get_contents("'$WORKINGDIR'app/etc/local.xml"));
+			$dbname=$localxml->global->resources->default_setup->connection->dbname;
+			$username=$localxml->global->resources->default_setup->connection->username;
+			$password=$localxml->global->resources->default_setup->connection->password;
+			$frontName=$localxml->admin->routers->adminhtml->args->frontName;
+			$tableprefix=$localxml->global->resources->db->table_prefix;
+			mysqli_report(MYSQLI_REPORT_STRICT);
+			try {
+				$link=new mysqli("localhost", $username, $password, $dbname);
+			} catch (Exception $e){
+				echo $dbname." ".$username." ".$password." ".$frontName." Cannotconnect ".$tableprefix;
+				exit;
+			}
+			if ($result=$link->query("select value from ".$tableprefix."core_config_data where path=\"web/unsecure/base_url\";")){
+				$baseurl=$result->fetch_assoc();
+				$result->free();
+				$link->close();
+				echo $dbname." ".$username." ".$password." ".$frontName." ".$baseurl["value"]." ".$tableprefix;
+			} else {
+				echo $dbname." ".$username." ".$password." ".$frontName." BadQuery ".$tableprefix;
+			}
+
+		')
+        elif [ -e $WORKINGDIR'app/etc/env.php' ];then
+		export MAGENTO_VER="2"
+		export TEMPVAR1=$(/usr/bin/php70 -r '$local=include("'$WORKINGDIR'app/etc/env.php");
+			$dbname=$local["db"]["connection"]["default"]["dbname"];
+			$username=$local["db"]["connection"]["default"]["username"];
+			$password=$local["db"]["connection"]["default"]["password"];
+			$frontName=$local["backend"]["frontName"];
+			$tableprefix=$local["db"]["table_prefix"];
+			mysqli_report(MYSQLI_REPORT_STRICT);
+			try {
+				$link=new mysqli("localhost", $username, $password, $dbname);
+			} catch (Exception $e){
+                                echo $dbname." ".$username." ".$password." ".$frontName." Cannotconnect ".$tableprefix;
+				exit;
+			}
+			if ($result=$link->query("select value from ".$tableprefix."core_config_data where path=\"web/unsecure/base_url\";")){
+				$baseurl=$result->fetch_assoc();
+				$result->free();
+				$link->close();
+				echo $dbname." ".$username." ".$password." ".$frontName." ".$baseurl["value"]." ".$tableprefix;
+			} else {
+				echo $dbname." ".$username." ".$password." ".$frontName." BadQuery ".$tableprefix;
+			}
+
+                ')
+        fi
+	export MYSQLDB=$(echo $TEMPVAR1|awk '{print $1}')
+	export MYSQLUSER=$(echo $TEMPVAR1|awk '{print $2}')
+	export MYSQLPASS=$(echo $TEMPVAR1|awk '{print $3}')
+	export ADMINURL=$(echo $TEMPVAR1|awk '{print $4}')
+	export MYSQL_PREFIX=$(echo $TEMPVAR1|awk '{print $6}')
+	export BASE_URL=$(echo $TEMPVAR1|awk '{print $5}')
+	if [[ -n ${CLEARDB+1} ]];then
+		if [ $CLEARDB = $MYSQLDB ];then
+		        echo "Magento "$MAGENTO_VER".x detected"
+			echo "At path:"$WORKINGDIR
+		        echo "Mysql DB name:"$MYSQLDB
+		        echo "Mysql Username:"$MYSQLUSER
+		        echo "Mysql Password:"$MYSQLPASS
+			echo "Table Prefix:"$MYSQL_PREFIX
+		fi
+	else 
+		echo "Magento "$MAGENTO_VER".x detected"
+		echo "Mysql DB name:"$MYSQLDB
+		echo "Mysql Username:"$MYSQLUSER
+		echo "Mysql Password:"$MYSQLPASS
+		echo "Table Prefix:"$MYSQL_PREFIX
+		echo "BaseURL:"$BASE_URL
+	fi
+	if [ -f app/Mage.php ]; then
+	        export MAGVERSION=$(/usr/bin/php70 -r 'try {
+	                        require_once("'$WORKINGDIR'app/Mage.php");
+	                        print Mage::getVersion();
+	                } catch (Exception $e){
+	                        print "Unknown";
+	                }')
+	elif [ -f app/etc/env.php ];then
+		export MAGVERSION=$(php70 /opt/magemojo/bin/composer.phar show 2>/dev/null|grep magento|grep edition 2>/dev/null)
+	else
+		export MAGVERSION="Unknown"
+	fi
+	echo "Magento Version: "$MAGVERSION
+
+}
+function mysql_vars(){
+	if [[ ! -n ${MAGENTO_VER+1} || ! -n ${MYSQLDB+1} || ! -n ${MYSQLUSER+1} || ! -n ${MYSQLPASS+1} || ! -n ${ADMINURL+1} ]];then
+		get_dbinfo
+	fi
+}
+
+function copy_migrate_files(){
+	if [[ ! -n ${SKIPCOPY+1} ]];then
+	        if [ $SSHPASS == 'ask' ];then
+	                echo "Enter SSH password"
+	                read SSHPASS
+	        fi
+	        if [[ -n ${SCP+1} ]];then
+			echo "SCP option passed, using SCP"
+	                sshpass -e scp -C -p -v -r -o StrictHostKeyChecking=no -o Loglevel=Debug -P $SSHPORT $SSHUSER@$SSHHOST:$VHOME/* .
+			sshpass -e scp -C -p -v -r -o StrictHostKeyChecking=no -o Loglevel=Debug -P $SSHPORT $SSHUSER@$SSHHOST:$VHOME/.* .
+	        else
+			echo "Rsyncing files"
+	                sshpass -e rsync -avz -e "ssh -o LogLevel=Debug -o StrictHostKeyChecking=no -p$SSHPORT" $SSHUSER@$SSHHOST:$VHOME/* .
+			sshpass -e rsync -avz -e "ssh -o LogLevel=Debug -o StrictHostKeyChecking=no -p$SSHPORT" $SSHUSER@$SSHHOST:$VHOME/.* .
+	        fi
+		echo "Files copied"
+	fi
+}
+function print_baseurls(){
+	mysql_vars
+	echo "select * from "$MYSQL_PREFIX"core_config_data where path like '%base_url%';"|mysql -uroot $MYSQLDB
+	echo "select * from "$MYSQL_PREFIX"core_config_data where path like '%web/secure/use%';"|mysql -uroot $MYSQLDB
+	echo "select * from "$MYSQL_PREFIX"core_config_data where path like '%admin%url%';"|mysql -uroot $MYSQLDB
+}
+
+function change_baseurls(){
+	mysql_vars
+	if [[ -n ${MYBASEURL+1} ]];then
+		rm -rf var/cache
+		rm -rf var/page_cache
+		redis-cli flushall
+		echo "Old base URLS"
+		print_baseurls
+		BASEURL=$NEWBASEURL
+		echo "update "$MYSQL_PREFIX"core_config_data set value ='${BASEURL}' where path ='web/unsecure/base_url' and scope='default';"|/usr/bin/mysql -u$MYSQLUSER -p$MYSQLPASS $MYSQLDB
+		echo "update "$MYSQL_PREFIX"core_config_data set value ='${BASEURL}' where path ='web/secure/base_url' and scope='default';"|/usr/bin/mysql -u$MYSQLUSER -p$MYSQLPASS $MYSQLDB		
+	else
+	        print_baseurls
+	        while true; do
+	            read -p "Do you wish to change the unsecure default base URL y/n" yn
+	            case $yn in
+	                [Yy]* )
+	                read BASEURL
+			BASEURL=$(addslash ${BASEURL})
+	                echo "update "$MYSQL_PREFIX"core_config_data set value ='${BASEURL}' where path ='web/unsecure/base_url' and scope='default';"|/usr/bin/mysql -u$MYSQLUSER -p$MYSQLPASS $MYSQLDB
+	                break;;
+	               [Nn]* )
+	                break;;
+	               * )
+	           esac
+	        done
+	        print_baseurls
+	        while true; do
+	            read -p "Do you wish to change the secure default base URL y/n" yn
+	            case $yn in
+	                [Yy]* )
+	                read BASEURL
+			BASEURL=$(addslash ${BASEURL})
+	                echo "update "$MYSQL_PREFIX"core_config_data set value ='${BASEURL}' where path ='web/secure/base_url' and scope='default';"|/usr/bin/mysql -u$MYSQLUSER -p$MYSQLPASS $MYSQLDB
+	                break;;
+	               [Nn]* )
+	                break;;
+	               * )
+	           esac
+	       done
+	fi
+	echo "New Base URLS"
+        print_baseurls
+        while true; do
+            read -p "Do you wish to disable all SSL on the site y/n" yn
+            case $yn in
+                [Yy]* )
+                echo "update "$MYSQL_PREFIX"core_config_data set value ='0' where path like '%web/secure/use%';"|/usr/bin/mysql -u$MYSQLUSER -p$MYSQLPASS $MYSQLDB
+                break;;
+               [Nn]* )
+                break;;
+               * )
+           esac
+        done
+        print_baseurls
+	
+}
+function import_remote_database(){
+	mysql_vars
+	if [[ -n ${TESTDB+1} ]];then
+		/usr/bin/sshpass -e ssh -o StrictHostKeyChecking=no $SSHUSER@$SSHHOST -p $SSHPORT "mysqldump --lock-tables=false -u'$MYSQLUSER' -p'$MYSQLPASS' $TESTDB|gzip -f"|zcat|mysql -uroot $MYSQLDB 
+	else
+		/usr/bin/sshpass -e ssh -o StrictHostKeyChecking=no $SSHUSER@$SSHHOST -p $SSHPORT "mysqldump --lock-tables=false -u'$MYSQLUSER' -p'$MYSQLPASS' $MYSQLDB|gzip -f"|zcat|mysql -uroot $MYSQLDB
+	fi
+}
+
+
+function temp_admin_halt(){
+        while true; do
+            read -p "Press x when done and hit enter when done" yn
+            case $yn in
+                [xX]* )
+                break;;
+               * )
+           esac
+        done
+}
+
+function set_admin_info(){
+	if [[ -n ${ADMINURL+1} ]];then
+		ADMIN_URL=$ADMINURL
+	else
+		ADMIN_URL="admin_"$(/usr/bin/php70 -r 'echo substr(str_shuffle("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),0,7);')
+	fi
+        ADMIN_USER="admin_"$(/usr/bin/php70 -r 'echo substr(str_shuffle("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),0,7);')
+        ADMIN_PASS=$(/usr/bin/php70 -r 'echo substr(str_shuffle("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),0,7);')
+	string=$(/usr/bin/php70 -r 'echo substr(str_shuffle("abcdefghijklmnopqrstuvwxyz"),0,1);')$(/usr/bin/php70 -r 'echo substr(str_shuffle("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),0,1);')$(/usr/bin/php70 -r 'echo substr(str_shuffle("0123456789"),0,1);')
+	ADMIN_PASS=$(/usr/bin/php70 -r 'echo substr(str_shuffle("'${ADMIN_PASS}${string}'"),0,10);')
+}
+
+function create_temp_admin_user(){
+        mysql_vars
+        set_admin_info
+	EMAIL_NUM=$(shuf -i 100-999 -n 1)
+        EMAIL="support"$EMAIL_NUM"@magemojo.com";FIRSTNAME="Support_staff";LASTNAME="@magemojo.com"
+        if [ -e 'app/etc/local.xml' ];then
+		eval $MAGERUN" admin:user:create $ADMIN_USER $EMAIL $ADMIN_PASS $FIRSTNAME $LASTNAME"
+                echo -e "Full admin url:  "$BASE_URL$ADMINURL"\nTest Admin user:"$ADMIN_USER"\nPassword:"$ADMIN_PASS
+                temp_admin_halt
+		eval $MAGERUN" admin:user:delete $ADMIN_USER -f"
+        elif [ -e 'app/etc/env.php' ];then
+		eval $MAGERUN2" admin:user:create --admin-user=$ADMIN_USER --admin-email=$EMAIL --admin-password=$ADMIN_PASS --admin-firstname=$FIRSTNAME --admin-lastname=$LASTNAME" 
+		echo -e "Full admin url:  "$BASE_URL$ADMINURL"\nTest Admin user:"$ADMIN_USER"\nPassword:"$ADMIN_PASS
+		temp_admin_halt
+		eval $MAGERUN2" admin:user:delete $ADMIN_USER -f"
+        fi
+}
+
+
+
+
+
+
+function show_magentos(){
+        echo "Detecting Magento/Redis installs. If no database ID is listed REDIS is not installed."
+        a="/home"
+        for b in $a/*;do
+                if [[ -d $b ]];then
+                        for c in $b/*;do
+                                if [[ -d $c ]];then
+					if [[ -e $c/app/etc/env.php || -e $c/app/etc/local.xml ]];then
+						echo "=============================================================="
+						echo "Path:"$c
+						WORKINGDIR=$c"/"
+						get_dbinfo
+						echo "Admin URL:"$ADMINURL
+						print_baseurls
+	                                        if [[ -e $c"/app/etc/env.php" ]];then
+	                                                DBNUM=$(grep "'database' =>" $c/app/etc/env.php |sed -r "s/'database' => '//"|sed -r "s/'|,|\ //g")
+	                                                echo "Redis database ID (front/back) "$DBNUM
+	                                        elif [[ -e $c"/app/etc/local.xml" ]];then
+	                                                DBNUM=$(grep -m1 database $c/app/etc/local.xml |sed -r 's/<database>//'| sed -r 's/<\/database>//' |sed -r 's/ //g'|\
+								sed -r 's/<!--[^-]+-->//')
+							echo "Redis database ID "$DBNUM
+	                                        fi
+						echo "=============================================================="
+					fi
+                                fi
+                        done
+                fi
+        done
+}
+
+
+
+function check_redis(){
+        echo "Detecting Magento/Redis installs. If no database ID is listed REDIS is not installed."
+        a="/home"
+        for b in $a/*;do
+                if [[ -d $b ]];then
+                        for c in $b/*;do
+                                if [[ -d $c ]];then
+                                        if [[ -e $c"/app/etc/env.php" ]];then
+                                                DBNUM=$(grep "'database' =>" $c/app/etc/env.php |sed -r "s/'database' => '//"|sed -r "s/'|,|\ //g")
+                                                echo "Magento 2.x Detected in:"$c" Redis database ID (front/back) "$DBNUM
+                                        elif [[ -e $c"/app/etc/local.xml" ]];then
+                                                DBNUM=$(grep -m1 database $c/app/etc/local.xml |sed -r 's/<database>//'| sed -r 's/<\/database>//' |sed -r 's/ //g'|\
+							sed -r 's/<!--[^-]+-->//')
+                                                echo "Magento 1.x Detected in:"$c" Redis database ID "$DBNUM
+
+                                        fi
+                                fi
+                        done
+                fi
+        done
+        while true; do
+            read -p "Do you wish to install REDIS to :"$(pwd)" y/n" yn
+            case $yn in
+                [Yy]* )
+                Install_redis
+                break;;
+               [Nn]* )
+                break;;
+               * )
+           esac
+        done
+        print_baseurls
+}
+
+
+function cleardb(){
+        a="/home"
+        for b in $a/*;do
+                if [[ -d $b ]];then
+                        for c in $b/*;do
+                                if [[ -d $c ]];then
+                                        if [[ -e $c"/app/etc/env.php" ||  -e $c"/app/etc/local.xml" ]];then
+						
+						WORKINGDIR=$c"/"
+						get_dbinfo
+                                        fi
+                                fi
+                        done
+                fi
+        done
+        while true; do
+            read -p "Are you sure you want to clear all the data from database:$CLEARDB" yn
+            case $yn in
+                [Yy]* )
+			echo "SET foreign_key_checks = 0;">/tmp/dumpfile;\
+			/usr/bin/mysqldump -uroot --lock-tables=false --add-drop-table --no-data ${CLEARDB} | grep ^DROP >>/tmp/dumpfile;\
+			echo "SET foreign_key_checks = 1;">>/tmp/dumpfile;\
+			mysql -uroot ${CLEARDB} </tmp/dumpfile;rm -f /tmp/dumpfile
+			echo "Database:"$CLEARDB" cleared"
+                break;;
+               [Nn]* )
+                break;;
+               * )
+           esac
+        done
+
+}
+function backup_site(){
+	df -h
+	temp_admin_halt
+	if [[ -n ${BACKUPSITE+1} ]];then
+		WORKINGDIR=$BACKUPSITE/
+		cd $WORKINGDIR
+		set_user_dir
+		mysql_vars
+		SQLFILE=$MYSQLDB"_"$(date '+%F').sql.gz
+		mysqldump --lock-tables=false $MYSQLDB|gzip>$SQLFILE
+		chown $DIROWNER:$DIRGROUP $SQLFILE
+		#This odd looking bit of code slices the dir tree into an array and assigns the last entry to backup_dir
+		array=( $(echo $WORKINGDIR | egrep -o '[^\/]+') )
+		BACKUPDIR=${array[${#array[@]}-1]}
+		BACKUPFILE=$BACKUPDIR"_"$(date '+%F').tar.gz
+		cd ..
+		tar cvhzf $BACKUPFILE $BACKUPDIR/
+		chown $DIROWNER:$DIRGROUP $BACKUPFILE
+		cd $BACKUPDIR
+		rm -f $SQLFILE
+		cd ..
+		echo -e "Backupfile:"$(pwd)/$BACKUPFILE"\nDatabase file in backup file:"$BACKUPDIR/$SQLFILE"\nExtraction command:"$(pwd)";tar xzvf "$(pwd)/$BACKUPFILE" "$BACKUPDIR/$SQLFILE"\n"
+	fi
+}
+
+function backup_db(){
+        if [[ -n ${BACKUPDB+1} ]];then
+                WORKINGDIR=$BACKUPDB/
+		cd $WORKINGDIR
+		set_user_dir
+		mysql_vars
+		cd ..
+		SQLFILE=$MYSQLDB"_"$(date '+%F').sql.gz
+		mysqldump --lock-tables=false $MYSQLDB|gzip>$SQLFILE
+		chown $DIROWNER:$DIRGROUP $SQLFILE
+		echo -e "Database:${MYSQLDB}\nDatabase backup file:"$(pwd)/$SQLFILE"\n"
+	fi
+}
+
+
+function dbsplit(){
+	df -h
+	temp_admin_halt
+	wget --no-check-certificate http://www.magemojo.com/files/dbsplit.sh -P /tmp >/dev/null 2>&1
+	chmod 755 /tmp/dbsplit.sh
+	if [[ ! -n ${DBFILE+1} ]];then
+		DBFILE='/home/mysqlbackup/mysqlbackup.dmp.gz'
+	fi
+	echo "The following output is from dbsplit"
+	/tmp/dbsplit.sh ${DBFILE} ${DBSPLIT}
+	rm -f /tmp/dbsplit.sh
+	sed -i.old '1s;^;SET foreign_key_checks = 0\;\n;' ${DBSPLIT}.sql
+	echo "SET foreign_key_checks = 1;">>${DBSPLIT}.sql
+	rm -f ${DBSPLIT}.sql.old
+	echo -e "Database file:${DBFILE}\nDatabase:${DBSPLIT}\nExtracted database:${DBSPLIT}.sql\nForeign key checks:disabled"
+}
+
+function tbsplit(){
+	wget --no-check-certificate http://magemojo.justanotherdomain.us/extract_table.pl -P /tmp >/dev/null 2>&1
+	chmod 755 /tmp/extract_table.pl
+	if [[ ${DBFILE} =~ 'gz' ]];then
+		echo "Please extract SQL file before splitting cannot process .gz files"
+		exit
+	fi
+	/tmp/extract_table.pl -r ${WORKINGDIR}/${DBFILE} -t ${TBSPLIT}|egrep -v '/*!40[0-9][0-9][0-9] SET' >${TBSPLIT}.sql
+	sed -i.old '1s;^;SET foreign_key_checks = 0\;\n;' ${TBSPLIT}.sql
+        echo "SET foreign_key_checks = 1;">>${TBSPLIT}.sql
+	rm -f /tmp/extract_table.pl
+	echo -e "Table:${TBSPLIT}\nDBfile:${DBFILE}\nTBfile:${TBSPLIT}.sql\nForeign key checks:disabled\n"
+}
+
+function accessreport(){
+	if [[ $(ps axf |grep nginx |grep -v grep --count) > "0" ]];then
+		echo "is nginx"
+	else
+		echo "is not nginx"
+	fi
+}
+function run_patch(){
+	if [ -f "Magemojo-Complete-Patch.sh" ];then rm -f Magemojo-Complete-Patch.sh;fi
+	wget --no-check-certificate https://magemojo.com/files/Magemojo-Complete-Patch.sh
+	chmod 755 Magemojo-Complete-Patch.sh
+	su $DIROWNER -c ./Magemojo-Complete-Patch.sh
+	rm -f Magemojo-Complete-Patch.sh
+	n98-magerun cache:flush
+}
+function cpanel_license(){
+	cd /home
+	wget --no-check-certificate http://web4.magemojo.com/files/cpanel.sh --no-check-certificate
+	bash cpanel.sh
+}
+function new_csr(){
+	openssl genrsa -out domain.com.key 2048
+	openssl req -new -sha256 -key domain.com.key -out domain.com.csr
+	echo "Key is domain.com.key, and CSR is domain.com.csr"
+}
+
+function wpver(){
+	  grep wp_version wp-includes/version.php
+}
+
+
+function bad_file(){
+	mysql_vars
+	tar --append --file=/home/bad_files.tar ${BADFILE}
+	echo "${BADFILE} appended to /home/bad_files.tar, files in that archive are:"
+	tar tvf /home/bad_files.tar
+	SIGNATURE=$(/usr/bin/php70 -r 'echo substr(str_shuffle("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),0,9);')
+	if [ -d "/tmp/"${SIGNATURE} ];then rm -rf /tmp/${SIGNATURE};fi
+	mkdir /tmp/${SIGNATURE}
+	echo $MAGVERSION>/tmp/${SIGNATURE}/version.txt
+	echo $BADFILE >/tmp/${SIGNATURE}/path.txt
+	cp ${BADFILE} /tmp/${SIGNATURE}
+	cd /tmp/${SIGNATURE}
+	tar cvhzf ${SIGNATURE}.tar.gz * >/dev/null 2>&1
+	export TEMPVAR1=$(/usr/bin/php70 -r '$ftp_conn = ftp_connect("james.magemojo.com") or die("Could not connect to server");
+		$login = ftp_login($ftp_conn, "security", "qgwwmnjst94zehfr");
+		if (ftp_put($ftp_conn, "bad_files/'${SIGNATURE}.tar.gz'", "'${SIGNATURE}.tar.gz'", FTP_ASCII)){
+			echo "Successfully archived bad file to james.magemojo.com.";
+		}else{
+		echo "Error uploading file.";}ftp_close($ftp_conn);'
+	)
+	echo ${TEMPVAR1}
+}
+
+
+function mag_version(){
+	echo $MAGVERSION
+}
+function makemagentorepo(){
+	if [[ ! -n ${DBNAME+1} ]];then
+		echo "Must specify a DBname when generating a repository"
+		return
+	fi
+}
+function makeswapfile(){
+	fallocate -l ${SWAPFILE} /home/swapfile.swap
+	mkswap /home/swapfile.swap
+	swapon /home/swapfile.swap
+	echo "/home/swapfile.swap swap swap defaults 0 0">>/etc/fstab
+}
+
+
+
+export -f temp_admin_halt
+export -f get_dbinfo
+export -f mysql_vars
+export -f create_temp_admin_user
+export -f copy_migrate_files;
+if [[ -n ${MIGRATEMAGENTO+1} ]];then
+	if [[ -n ${SSHHOST+1} && -n ${SSHUSER+1} && -n ${SSHPASS+1} && -n ${VHOME+1} && -n ${SSHPORT} ]];then
+		su $DIROWNER -c copy_migrate_files
+		get_dbinfo
+		read -n1 -r -p "Once you have created the database/user/password press any key to continue importing database, otherwise ctrl-c to abort" key
+		echo "The database is being imported now, be patient"
+		import_remote_database
+		get_dbinfo
+		change_baseurls
+		create_temp_admin_user
+		check_redis
+	else
+		echo -e "Usage: -MIGRATEMAGENTO -SSHHOST='' -SSHUSER='' -SSHPASS='' -VHOME='' -SSHPORT='22'\n"
+	fi
+elif [[ -n ${NEWBASEURL+1} ]];then
+	change_baseurls	
+elif [[ -n ${CHECKREDIS+1} ]];then
+	check_redis
+elif [[ -n ${PRINTBASEURL+1} ]];then
+	print_baseurls
+elif [[ -n ${TEMPADMIN+1} ]];then
+	create_temp_admin_user
+elif [[ -n ${SHOWDB+1} ]];then
+	get_dbinfo
+elif [[ -n ${SHOWMAGENTOS+1} ]];then
+	show_magentos
+elif [[ -n ${BACKUPSITE+1} ]];then
+	backup_site
+elif [[ -n ${BACKUPDB+1} ]];then
+        backup_db
+elif [[ -n ${CLEARDB+1} ]];then
+	cleardb
+elif [[ -n ${INSTALLMAGENTO+1} ]];then
+	install_magento
+elif [[ -n ${DBSPLIT+1} ]];then
+	dbsplit
+elif [[ -n ${TBSPLIT+1} ]];then
+	tbsplit
+elif [[ -n ${PATCH+1} ]];then
+	run_patch
+elif [[ -n ${LICENSE+1} ]];then
+        cpanel_license
+elif [[ -n ${CSR+1} ]];then
+        new_csr
+elif [[ -n ${WPVER+1} ]];then
+        wpver
+elif [[ -n ${BADFILE+1} ]];then
+        bad_file
+elif [[ -n ${GOODFILE+1} ]];then
+        good_file
+elif [[ -n ${MAGVERSION+1} ]];then
+	mag_version
+elif [[ -n ${ACCESSREPORT+1} ]];then
+	accessreport
+elif [[ -n ${MAKEMAGENTOREPO+1} ]];then
+	makemagentorepo
+elif [[ -n ${SWAPFILE+1} ]];then
+        makeswapfile
+
+else
+	echo "This tool is documented at https://magemojo.atlassian.net/wiki/display/MW/The+other+mage+command"
+	echo "Most commands run from the current directory as a reference point(unless overriden) and should be run from public_html, functionality is as follows"
+	echo "Migrate a remote host to current working directory: mage -MIGRATEMAGENTO -SSHHOST='' -SSHUSER='' -SSHPASS='' -VHOME='' -SSHPORT='22'"
+	echo "Check/Install REDIS:-CHECKREDIS"
+	echo "Print BaseURLs:-PRINTBASEURL"
+	echo "Update the base URLs and set ssl options: |To be prompted for all mage -NEWBASEURL|To quickly set all mage -NEWBASEURL -MYBASEURL='http://blah.com/'"
+	echo "Create a temporary admin user:-TEMPADMIN"
+	echo "Show database information:-SHOWDB"
+	echo "Set working directory: -WORKINGDIR works on -SHOWDB & -PRINTBASEURL"
+	echo "Show Magento installs: -SHOWMAGENTOS or -SHOWM for short"
+	echo "Remove all the tables from a database:-CLEARDB"
+	echo "Migrations always run as the owner of the current directory, options are not case sensitive"
+fi
